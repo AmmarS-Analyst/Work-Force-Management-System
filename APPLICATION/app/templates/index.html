@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Management | Workforce Management System{% endblock %}
+
+{% block content %}
+<div class="page-header animate-fade-in-up">
+    <div class="d-flex justify-content-between align-items-center">
+        <!-- Title -->
+        <h1 class="page-title mb-0">
+            Agent Designation & Role Management
+        </h1>
+
+        <!-- Bell Icon -->
+        <span class="page-icon">
+            <i class="fas fa-bell"></i>
+        </span>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+
+<div class="row">
+    <div class="col-lg-6">
+        <!-- Upload Card -->
+        <div class="card mb-4 animate-fade-in-up">
+            <div class="card-header">
+                <h3><i class="fas fa-file-arrow-up text-primary"></i> CSV Upload</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.upload') }}" enctype="multipart/form-data" id="uploadForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="fileUpload" class="form-label">Select CSV File</label>
+                        <input type="file" name="file" id="fileUpload" accept=".csv" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="uploadBtn">
+                        <i class="fas fa-upload"></i> Upload File
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Agent Edit Card -->
+        <div class="card mb-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+            <div class="card-header">
+                <h3><i class="fas fa-user-pen text-primary"></i> Edit Agent Details</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.index') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <!-- Agent -->
+                    <div class="mb-3">
+                        <label for="agent" class="form-label">Agent Name</label>
+                        <select id="agent" name="agent" class="form-select" required>
+                            <option value="">-- Select Agent --</option>
+                            {% for agent in agent_names %}
+                                <option value="{{ agent }}">{{ agent }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Date -->
+                    <!-- Date -->
+<div class="mb-3">
+    <label for="date" class="form-label">Effective Date</label>
+    <div class="input-group">
+        <span class="input-group-text"><i class="fas fa-calendar-days"></i></span>
+        <input 
+            type="date" 
+            id="date" 
+            name="date" 
+            class="form-control" 
+            required
+        >
+    </div>
+</div>
+
+                    <!-- Role -->
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select name="role" id="role" class="form-select" required>
+                            <option value="">-- Select Role --</option>
+                            <option value="Full-Timer">Full Timer</option>
+                            <option value="Part-Timer">Part Timer</option>
+                        </select>
+                    </div>
+
+                    <!-- Designation -->
+                    <div class="mb-3">
+                        <label for="designation" class="form-label">Designation</label>
+                        <select name="designation" id="designation" class="form-select" required>
+                            <option value="">-- Select Designation --</option>
+                            <option value="Agent">Agent</option>
+                            <option value="Team Leader">Team-Leader</option>
+                            <option value="Team Manager">Team Manager</option>
+                        </select>
+                    </div>
+
+                    <!-- Group field (hidden by default) -->
+                    <!-- Group field (hidden by default) -->
+<div class="mb-3" id="groupField" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="group_name" class="form-label">Group Name</label>
+    <input 
+        type="text" 
+        name="group_name" 
+        id="group_name" 
+        class="form-control" 
+        placeholder="Enter Group Name">
+</div>
+
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-floppy-disk"></i> Update Agent
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <!-- File Management Card -->
+        <div class="card mb-4 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="card-header">
+                <h3><i class="fas fa-database text-primary"></i> File Management</h3>
+            </div>
+            <div class="card-body">
+                {% if filenames %}    
+                    <form method="POST" action="{{ url_for('main.index') }}" id="fileManagementForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="fileSelect" class="form-label">Select File</label>
+                            <select id="fileSelect" name="filename" class="form-select" required>
+                                <option value="">-- Select File --</option>
+                                {% for file in filenames %}
+                                    <option value="{{ file }}" {% if selected_file == file %}selected{% endif %}>{{ file }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Delete Option:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" 
+                                       name="delete_option" 
+                                       id="deleteEntire" 
+                                       value="entire" 
+                                       checked
+                                       onclick="toggleDatesSection(false)">
+                                <label class="form-check-label" for="deleteEntire">
+                                    Entire File
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" 
+                                       name="delete_option" 
+                                       id="deleteDates" 
+                                       value="dates"
+                                       onclick="toggleDatesSection(true)">
+                                <label class="form-check-label" for="deleteDates">
+                                    Specific Dates
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="datesSection" class="mb-3" style="display: none;">
+                            <label class="form-label">Select Dates:</label>
+                            <div class="date-checkboxes" id="datesCheckboxes">
+                                {% if dates %}
+                                    {% for date in dates %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="selected_dates" 
+                                                   value="{{ date }}" 
+                                                   id="date-{{ loop.index }}">
+                                            <label class="form-check-label" for="date-{{ loop.index }}">
+                                                {{ date }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No dates available. Select a file and click "Show Dates"</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="deleteReason" class="form-label">Reason (required):</label>
+                            <textarea name="reason" id="deleteReason" class="form-control" rows="3" placeholder="Explain why this data should be deleted..." required></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" id="showDatesBtn" class="btn btn-info flex-grow-1">
+                                <i class="fas fa-eye"></i> Show Dates
+                            </button>
+                            
+                            {% if current_user.has_role('Admin') %}
+                                <button type="submit" class="btn btn-danger flex-grow-1" name="action" value="delete_all">
+                                    <i class="fas fa-trash"></i> Delete Entire File
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-danger flex-grow-1" name="action" value="create_delete_request">
+                                    <i class="fas fa-paper-plane"></i> Request Full Deletion
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {% if current_user.has_role('Admin') %}
+                                <button type="submit" class="btn btn-warning" name="action" value="delete_dates">
+                                    <i class="fas fa-calendar-xmark"></i> Delete Selected Dates
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-warning" name="action" value="create_delete_request">
+                                    <i class="fas fa-paper-plane"></i> Request Date Deletion
+                                </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No files found in database.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= Agent Status Updater ================= -->
+<div class="card mt-3 shadow-lg border-0">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">
+            <i class="fas fa-user-check"></i> Update Agent Status
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('main.update_agent_status') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- Agent Dropdown -->
+            <div class="mb-3">
+                <label for="status-agent" class="form-label fw-bold">Agent Name</label>
+                <input list="agents" name="agent_name" class="form-control rounded-pill" 
+                       id="status-agent" required placeholder="Type or select agent...">
+                <datalist id="agents">
+                    {% for agent in agent_names %}
+                        <option value="{{ agent }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <!-- Status Dropdown -->
+            <div class="mb-3">
+                <label for="status-select" class="form-label fw-bold">Status</label>
+                <select name="status" id="status-select" class="form-select rounded-pill" required>
+                    <option value="">-- Select Status --</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Lay Off">Lay Off</option>
+                    <option value="Long Leave">Long Leave</option>
+                    <option value="Resigned">Resigned</option>
+                </select>
+            </div>
+
+            <!-- Effective Date Picker -->
+            <div class="mb-3">
+                <label for="effective-date" class="form-label fw-bold">Effective From Date</label>
+                <input type="text" name="effective_date" id="effective-date" 
+                       class="form-control rounded-pill" placeholder="Select a date" required>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-success rounded-pill shadow-sm">
+                    <i class="fas fa-save"></i> Update Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Flatpickr Date Picker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    flatpickr("#effective-date", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+        allowInput: true,
+        defaultDate: "today",
+        class: "rounded-pill"
+    });
+</script>
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle delete dates section
+    function toggleDatesSection(show) {
+        const datesSection = document.getElementById('datesSection');
+        datesSection.style.display = show ? 'block' : 'none';
+        
+        if (!show) {
+            document.querySelectorAll('#datesSection input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleDatesSection(document.getElementById('deleteDates').checked);
+
+        // 👇 New logic for designation → show group field if "Team Manager"
+        const designationSelect = document.getElementById("designation");
+        const groupField = document.getElementById("groupField");
+
+        function toggleGroupField() {
+            if (designationSelect.value === "Team Manager") {
+                groupField.style.display = "block";
+            } else {
+                groupField.style.display = "none";
+                document.getElementById("group_name").value = "";
+            }
+        }
+
+        designationSelect.addEventListener("change", toggleGroupField);
+        toggleGroupField(); // init
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateInput = document.getElementById("date");
+
+        // Open calendar on click anywhere in the field
+        dateInput.addEventListener("click", function () {
+            if (dateInput.showPicker) {
+                dateInput.showPicker();
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}

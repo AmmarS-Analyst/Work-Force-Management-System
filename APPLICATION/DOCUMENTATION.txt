@@ -1,0 +1,389 @@
+# AGENT MANAGEMENT SYSTEM - COMPREHENSIVE DOCUMENTATION
+
+## TABLE OF CONTENTS
+1. System Architecture
+2. Database Models
+3. Service Layer
+4. Route Handlers
+5. Utility Functions
+6. Configuration
+7. Security Implementation
+8. Data Processing
+9. API Endpoints
+10. Deployment Guide
+
+## 1. SYSTEM ARCHITECTURE
+
+### Overview
+The Agent Management System is a Flask-based web application with a layered architecture:
+- **Presentation Layer**: HTML templates with Jinja2
+- **Route Layer**: Flask blueprints handling HTTP requests
+- **Service Layer**: Business logic and orchestration
+- **Data Layer**: SQLAlchemy ORM with PostgreSQL
+- **Utility Layer**: Helper functions and common operations
+
+### File Structure
+```
+app/
+├── __init__.py              # Flask app factory and initialization
+├── config.py                # Centralized configuration
+├── models.py                # Database models and relationships
+├── routes.py                # Main application routes
+├── admin.py                 # Admin-specific routes
+├── auth.py                  # Authentication routes
+├── decorators.py            # Security decorators
+├── distributor.py           # Distribution business logic
+├── data_ingestion.py        # CSV processing engine
+├── utils.py                 # Utility functions
+├── preprocessor.py          # Data preprocessing
+├── updater.py               # Data update operations
+├── permissions.py           # Permission system
+├── services/                # Service layer
+│   ├── user_service.py      # User management
+│   ├── file_service.py      # File operations
+│   ├── distribution_service.py # Distribution orchestration
+│   └── log_service.py       # Activity logging
+├── templates/               # HTML templates
+└── static/                  # CSS, JS, images
+```
+
+## 2. DATABASE MODELS
+
+### Core Models
+
+#### User Model
+- **Purpose**: Authentication and user management
+- **Key Fields**: username, password_hash, is_active, tm_id, tl_id
+- **Relationships**: Many-to-many with Role, One-to-many with DeleteRequest
+- **Methods**: set_password(), check_password(), has_role(), has_permission()
+
+#### Role Model
+- **Purpose**: Role-based access control
+- **Key Fields**: name, permissions (pickled list)
+- **Default Roles**: admin, data_entry, tm, tl, agent
+
+#### TeamManager Model
+- **Purpose**: Team management hierarchy
+- **Key Fields**: name, group_name, is_active, created_date, end_date
+- **Relationships**: One-to-many with TeamLeader, One-to-many with User
+- **Features**: Self-referential replacement tracking
+
+#### TeamLeader Model
+- **Purpose**: Team leadership structure
+- **Key Fields**: name, group_name, tm_id, tm_name, is_active
+- **Relationships**: Many-to-one with TeamManager, One-to-many with Agent
+
+#### Agent Model
+- **Purpose**: Agent information and assignments
+- **Key Fields**: name, group_name, tl_id, tm_id, is_active
+- **Relationships**: Many-to-one with TeamLeader and TeamManager
+
+### Data Models
+
+#### RawCallLog Model
+- **Purpose**: Store original CSV data
+- **Key Fields**: agent_name, profile_id, call_log_id, log_time, source_file
+- **Usage**: Raw data storage before processing
+
+#### UpdatedCallLog Model
+- **Purpose**: Processed call data with hierarchy information
+- **Key Fields**: All RawCallLog fields plus designation, role, group_name, tm_name, tl_name
+- **Usage**: Processed data with team assignments
+
+### Request Models
+
+#### DeleteRequest Model
+- **Purpose**: File deletion approval workflow
+- **Key Fields**: filename, requested_by, reason, status, date_range
+- **Status Values**: pending, approved, denied
+
+#### DistributionRequest Model
+- **Purpose**: Team distribution change requests
+- **Key Fields**: agent_name, action, effective_date, status, created_by
+- **Actions**: swap, shift_change, transfer
+
+#### ActivityLog Model
+- **Purpose**: System activity audit trail
+- **Key Fields**: user, msg, date
+- **Usage**: Track all user actions and system changes
+
+## 3. SERVICE LAYER
+
+### UserService
+- **Purpose**: User, role, and team management operations
+- **Key Methods**:
+  - init_roles(): Initialize system roles with permissions
+  - init_admin_user(): Create default admin user
+  - create_user(): Create new user with role assignment
+  - delete_user(): Delete user with validation
+  - create_team_manager(): Create new team manager
+  - create_team_leader(): Create team leader with user account
+  - delete_team_leader(): Delete team leader with validation
+  - replace_team_manager(): Replace team manager with new one
+
+### FileService
+- **Purpose**: File upload and data processing operations
+- **Key Methods**:
+  - handle_file_upload(): Process CSV file uploads
+  - create_delete_request(): Create file deletion request
+  - delete_all_data(): Delete all data from file (admin only)
+  - delete_dates_data(): Delete data for specific dates
+  - get_raw_dates(): Get available dates for file
+  - prepare_index_context(): Prepare dashboard data
+
+### DistributionService
+- **Purpose**: Distribution operations orchestration
+- **Key Methods**:
+  - get_distribution_page(): Prepare distribution page context
+  - handle_tl_request(): Process team leader requests
+  - handle_admin_tm_update(): Process admin/tm direct updates
+  - handle_request_decision(): Process request approvals/denials
+  - update_agent_designation(): Update agent designation and role
+
+### LogService
+- **Purpose**: Activity logging and audit trail
+- **Key Methods**:
+  - log_activity(): Create activity log entry
+  - get_logs(): Retrieve logs with filtering
+  - get_available_dates(): Get distinct log dates
+  - get_available_users(): Get distinct log users
+  - prepare_logs_context(): Prepare logs page context
+  - get_log_statistics(): Get log statistics (admin only)
+
+## 4. ROUTE HANDLERS
+
+### Main Routes (routes.py)
+- **GET /**: Dashboard for admin/data_entry users
+- **POST /**: Handle file operations and agent updates
+- **GET /distribution**: Distribution page for tm/tl users
+- **POST /distribution**: Handle distribution requests and updates
+
+### Admin Routes (admin.py)
+- **GET /admin/**: Admin dashboard
+- **POST /admin/create-user**: Create new user
+- **POST /admin/delete-user/<id>**: Delete user
+- **POST /admin/create-team-manager**: Create team manager
+- **POST /admin/create-team-leader**: Create team leader
+- **POST /admin/delete-team-leader/<id>**: Delete team leader
+- **POST /admin/delete-team-manager/<id>**: Delete team manager
+- **POST /admin/deactivate-team-manager/<id>**: Deactivate team manager
+- **POST /admin/replace-team-manager**: Replace team manager
+
+### Auth Routes (auth.py)
+- **GET /auth/login**: Login page
+- **POST /auth/login**: User authentication
+- **GET /auth/logout**: User logout
+
+## 5. UTILITY FUNCTIONS
+
+### utils.py
+- **hash_password()**: Secure password hashing
+- **normalize_name()**: Name normalization to title case
+- **clean_agent_name()**: Remove part-time suffix from agent names
+- **detect_role()**: Detect part-time vs full-time based on name
+- **log_activity()**: Log activity to memory and database
+- **get_pending_delete_requests()**: Fetch pending deletion requests
+
+### preprocessor.py (it has to be remove as no use of it now)
+- **clean_agent_name()**: Remove part-time suffix
+- **detect_role()**: Detect agent type from name
+- **process_dataframe()**: Process CSV data and insert into database
+
+### updater.py
+- **update_agent_data()**: Update agent designation and role in database
+
+## 6. CONFIGURATION
+
+### config.py
+Centralized configuration with the following sections:
+- **Core Application**: SECRET_KEY, DATABASE_URI, SQLALCHEMY settings
+- **Flask-Login**: LOGIN_VIEW, SESSION_PROTECTION
+- **Session Settings**: PERMANENT_SESSION_LIFETIME, cookie settings
+- **CSRF Protection**: WTF_CSRF_ENABLED, WTF_CSRF_SECRET_KEY
+- **Database Pool**: Connection pool optimization settings
+- **File Upload**: MAX_CONTENT_LENGTH, UPLOAD_CHUNK_SIZE
+- **Application Paths**: TEMPLATE_FOLDER, STATIC_FOLDER
+- **Default Values**: DEFAULT_DESIGNATION, DEFAULT_ROLE
+- **Production Settings**: Commented production configurations
+
+## 7. SECURITY IMPLEMENTATION
+
+### Authentication
+- **Flask-Login**: User session management
+- **Password Hashing**: Werkzeug secure hashing
+- **Session Protection**: Strong session protection enabled
+- **Session Timeout**: 30-minute session lifetime
+
+### Authorization
+- **Role-Based Access Control**: admin, data_entry, tm, tl, agent roles
+- **Permission System**: Granular permission checking
+- **Route Protection**: @login_required, @role_required, @admin_required decorators
+- **CSRF Protection**: Enabled on all forms
+
+### Data Security
+- **Input Validation**: All user inputs validated and sanitized
+- **SQL Injection Prevention**: SQLAlchemy ORM with parameterized queries
+- **File Upload Security**: File type validation and secure filename handling
+- **XSS Protection**: Jinja2 auto-escaping enabled
+
+## 8. DATA PROCESSING
+
+### CSV Ingestion (data_ingestion.py)
+- **High-Performance Processing**: Memory-mapped CSV loading
+- **Bulk Database Operations**: Connection pool optimization
+- **Data Validation**: Required column validation
+- **Hierarchy Processing**: Team leader detection and assignment
+- **Performance**: 5000+ rows/second processing capability
+
+### Data Flow
+1. **Raw Data**: CSV files stored in RawCallLog table
+2. **Processing**: Data cleaned and processed with hierarchy information
+3. **Updated Data**: Processed data stored in UpdatedCallLog table
+4. **Team Assignment**: Agents assigned to team leaders and managers
+5. **Designation Updates**: Agent designations updated based on hierarchy
+
+## 9. API ENDPOINTS
+
+### Authentication Endpoints
+- **POST /auth/login**: User login
+- **GET /auth/logout**: User logout
+
+### Main Application Endpoints
+- **GET /**: Dashboard (admin/data_entry)
+- **POST /**: File operations and agent updates
+- **GET /distribution**: Distribution page (tm/tl)
+- **POST /distribution**: Distribution requests and updates
+
+### Admin Endpoints
+- **GET /admin/**: Admin dashboard
+- **POST /admin/create-user**: Create user
+- **POST /admin/delete-user/<id>**: Delete user
+- **POST /admin/create-team-manager**: Create team manager
+- **POST /admin/create-team-leader**: Create team leader
+- **POST /admin/delete-team-leader/<id>**: Delete team leader
+- **POST /admin/delete-team-manager/<id>**: Delete team manager
+- **POST /admin/deactivate-team-manager/<id>**: Deactivate team manager
+- **POST /admin/replace-team-manager**: Replace team manager
+
+## 10. DEPLOYMENT GUIDE
+
+### Prerequisites
+- Python 3.9+
+- PostgreSQL 12+
+- pip package manager
+
+### Installation Steps
+1. Clone repository
+2. Create virtual environment
+3. Install dependencies: `pip install -r requirements.txt`
+4. Create .env file with configuration
+5. Set up PostgreSQL database
+6. Run migrations: `flask db upgrade`
+7. Initialize roles and admin user
+8. Start application: `python main.py`
+
+### Production Deployment
+1. Set production environment variables
+2. Update config.py for production settings
+3. Install and configure WSGI server (Gunicorn)
+4. Set up reverse proxy (Nginx)
+5. Configure SSL/TLS certificate
+6. Set up monitoring and logging
+
+### Environment Variables
+- **SECRET_KEY**: Flask secret key
+- **DATABASE_URL**: PostgreSQL connection string
+- **SESSION_COOKIE_SECURE**: HTTPS cookie security
+- **FLASK_ENV**: Environment (development/production)
+- **FLASK_DEBUG**: Debug mode (True/False)
+
+## PERFORMANCE OPTIMIZATIONS
+
+### Database Optimizations
+- **Connection Pooling**: 15 connections, 25 overflow
+- **Query Optimization**: Proper indexing and joins
+- **Bulk Operations**: Batch inserts and updates
+- **Connection Recycling**: 5-minute connection recycle
+
+### Data Processing Optimizations
+- **Memory-Mapped Files**: Efficient large file handling
+- **Chunked Processing**: Files >50MB processed in chunks
+- **Bulk Database Operations**: Minimize database round trips
+- **Optimized Queries**: Efficient data retrieval
+
+### Caching Strategy
+- **In-Memory Logs**: Frontend activity logs
+- **Database Logs**: Persistent activity storage
+- **Session Management**: Efficient session handling
+
+## ERROR HANDLING
+
+### Exception Handling
+- **Database Rollbacks**: Automatic rollback on errors
+- **User-Friendly Messages**: Clear error messages for users
+- **Logging**: Comprehensive error logging
+- **Graceful Degradation**: System continues on non-critical errors
+
+### Validation
+- **Input Validation**: All user inputs validated
+- **File Validation**: CSV file format and content validation
+- **Business Logic Validation**: Team hierarchy and assignment validation
+- **Permission Validation**: Role-based access validation
+
+## MONITORING AND LOGGING
+
+### Activity Logging
+- **User Actions**: All user actions logged
+- **System Changes**: Database changes tracked
+- **File Operations**: Upload and deletion operations logged
+- **Distribution Changes**: Team assignment changes audited
+
+### Error Logging
+- **Application Errors**: Flask application errors
+- **Database Errors**: SQLAlchemy errors
+- **File Processing Errors**: CSV processing errors
+- **Authentication Errors**: Login and permission errors
+
+## MAINTENANCE AND UPDATES
+
+### Regular Maintenance
+- **Database Cleanup**: Remove old logs and temporary data
+- **File Cleanup**: Remove processed temporary files
+- **Session Cleanup**: Clean expired sessions
+- **Log Rotation**: Rotate application logs
+
+### Updates and Migrations
+- **Database Migrations**: Alembic for schema changes
+- **Code Updates**: Version control and deployment
+- **Configuration Updates**: Environment variable updates
+- **Dependency Updates**: Regular package updates
+
+## TROUBLESHOOTING
+
+### Common Issues
+- **Database Connection**: Check PostgreSQL service and credentials
+- **File Upload**: Check file permissions and disk space
+- **Session Issues**: Check session configuration and cookies
+- **Permission Errors**: Verify user roles and permissions
+
+### Debug Mode
+- **Development**: Debug mode enabled for development
+- **Production**: Debug mode disabled for production
+- **Logging**: Comprehensive logging for troubleshooting
+- **Error Pages**: User-friendly error pages
+
+## SECURITY CONSIDERATIONS
+
+### Production Security
+- **HTTPS**: SSL/TLS encryption for all communications
+- **Secure Cookies**: HttpOnly and Secure cookie flags
+- **CSRF Protection**: Cross-site request forgery prevention
+- **Input Sanitization**: All inputs sanitized and validated
+
+### Access Control
+- **Role-Based Access**: Granular permission system
+- **Session Management**: Secure session handling
+- **Password Security**: Strong password requirements
+- **Audit Trail**: Complete activity logging
+
+This documentation provides a comprehensive overview of the Agent Management System architecture, implementation, and deployment. For specific implementation details, refer to the inline comments in the source code files.

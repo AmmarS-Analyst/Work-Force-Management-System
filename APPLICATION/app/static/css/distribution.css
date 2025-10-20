@@ -1,0 +1,254 @@
+/* =========================
+   Distribution Page Styles
+========================== */
+
+/* General container */
+.distribution-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Card styling */
+.card {
+    border-radius: 12px;
+    background: var(--card-bg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* Viewer tabs */
+.viewer-tabs {
+    display: flex;
+    gap: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.25rem;
+    margin-bottom: 1rem;
+}
+.viewer-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--gray-dark);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.3s, color 0.3s;
+    font-size: 0.95rem;
+}
+.viewer-tab.active {
+    background: var(--primary);
+    color: #fff;
+}
+.viewer-tab:not(.active):hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+/* Viewer content */
+.viewer-content {
+    display: none;
+}
+.viewer-content.active {
+    display: block;
+}
+
+/* Agent grid */
+.agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* =========================
+   Agent Card Styles
+========================== */
+.agent-card {
+    border-radius: 10px;
+    padding: 0.75rem;
+    text-align: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: linear-gradient(145deg, #f0f4ff, #e6edff);
+    color: #212529; /* Dark text for readability */
+}
+.agent-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.agent-card strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    color: var(--primary);
+}
+.agent-card span {
+    font-size: 0.85rem;
+    color: #111; /* Dark text for visibility */
+}
+.agent-card small {
+    display: block;
+    color: #111; /* Dark Joined On / From */
+    margin-top: 0.25rem;
+}
+
+/* =========================
+   Active / Inactive Labels
+========================== */
+.agent-card .status-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+}
+.agent-card.active .status-label {
+    background: #198754; /* green */
+    color: #fff;
+}
+.agent-card.inactive .status-label {
+    background: #ffc107; /* yellow */
+    color: #212529;
+}
+
+/* Agents who moved/left/changed TM/TL/Group */
+.agent-card.moved {
+    background: linear-gradient(145deg, #fff3e6, #ffe0b2); /* subtle orange */
+    color: #6b3e00; /* dark brown text */
+    text-decoration: line-through;
+}
+.agent-card.moved small {
+    color: #6b3e00;
+}
+
+/* Status badge */
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 0.25rem;
+}
+.status-employee { background: #198754; color: #fff; }
+.status-layoff { background: #dc3545; color: #fff; }
+.status-long-leave { background: #ffc107; color: #212529; }
+.status-resigned { background: #6c757d; color: #fff; }
+
+/* Info header */
+.info-header {
+    background: rgba(66, 133, 244, 0.1);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    font-weight: 600;
+    border: 1px solid rgba(66, 133, 244, 0.2);
+}
+
+/* Search results */
+.search-results {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    animation: fadeIn 0.4s ease;
+}
+
+/* Record title */
+.search-results h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary);
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 0.25rem;
+}
+
+/* Individual record items */
+.search-results .agent-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    transition: background 0.25s, transform 0.2s;
+}
+.search-results .agent-detail-item:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+/* Suggestion box */
+.suggestion-box {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    width: calc(100% - 2px);
+    display: none;
+}
+.suggestion-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-color);
+}
+.suggestion-item:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+/* No agents */
+.no-agents {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--gray-dark);
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .distribution-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    .agent-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+@media (max-width: 768px) {
+    .viewer-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .agent-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(5px); }
+    100% { opacity: 1; transform: translateY(0); }
+}

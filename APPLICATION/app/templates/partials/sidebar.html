@@ -1,0 +1,43 @@
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <i class="fas fa-user-shield fa-lg"></i>
+        <span>WMS Console</span>
+    </div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
+                <i class="fas fa-user-gear"></i>
+                <span>Agent Management</span>
+            </a>
+        </li>
+        {% if not current_user.has_role('data_entry') %}
+        <li class="nav-item">
+            <a href="{{ url_for('main.distribution') }}" class="nav-link {% if request.endpoint == 'main.distribution' %}active{% endif %}">
+                <i class="fas fa-users-gear"></i>
+                <span>Distribution</span>
+            </a>
+        </li>
+        {% endif %}
+       {% if current_user.has_role('admin') %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.view_processed') }}">
+             <i class="fas fa-history"></i> Activity Logs
+            </a>
+        </li>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.has_role('admin') %}
+        <li class="nav-item">
+            <button class="nav-link" id="adminPanelToggle">
+                <i class="fas fa-lock"></i>
+                <span>Admin Panel</span>
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item mt-4">
+            <a href="{{ url_for('main.logout') }}" class="nav-link logout-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</aside>

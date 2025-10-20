@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Logs | Workforce Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-table text-primary"></i>
+        Activity Logs
+    </h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Filter Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3><i class="fas fa-filter text-primary"></i> Filter Logs</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="date" class="form-label">Filter by Date:</label>
+                <select name="date" id="date" class="form-select">
+                    <option value="">All Dates</option>
+                    {% for d in dates %}
+                        <option value="{{ d }}" {% if selected_date == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="user" class="form-label">Filter by User:</label>
+                <select name="user" id="user" class="form-select">
+                    <option value="">All Users</option>
+                    {% for u in users %}
+                        <option value="{{ u }}" {% if selected_user == u %}selected{% endif %}>{{ u }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('main.view_processed') }}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Logs Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="mb-0"><i class="fas fa-list text-primary"></i> Activity Logs</h3>
+            <span class="badge bg-primary">{{ logs|length }} entries</span>
+        </div>
+
+        <!-- Three Dots Dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-light" type="button" id="logsMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="logsMenu">
+                <li>
+                    <button type="button" class="dropdown-item text-danger" onclick="confirmDeleteLogs()">
+                        <i class="fas fa-trash"></i> Clear Logs History
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="logs-container">
+            {% if logs %}
+                <div class="logs-box">
+                    {% for log in logs %}
+                        <div class="log-entry">
+                            <div class="log-header">
+                                <span class="log-user">{{ log.user }}</span>
+                                <span class="log-date">{{ log.date }}</span>
+                            </div>
+                            <div class="log-message">{{ log.msg }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No logs found</h5>
+                    <p class="text-muted">No activity logs match the selected filters.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.logs-container {
+    margin-top: 0;
+}
+
+.logs-box {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.logs-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.logs-box::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.logs-box::-webkit-scrollbar-track {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.log-entry {
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--border-color);
+    color: var(--text-color);
+    transition: border-color 0.3s ease;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
+.log-user {
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(66, 133, 244, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.log-date {
+    color: var(--gray-dark);
+    font-size: 0.75rem;
+}
+
+.log-message {
+    color: var(--text-color);
+    word-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .log-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .logs-box {
+        max-height: 400px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+async function confirmDeleteLogs() {
+  const result = await Swal.fire({
+    title: "⚠ Are you sure?",
+    text: "Do you really want to clear ALL logs? This cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, Delete",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",   // red delete button
+    cancelButtonColor: "#6c757d", // gray cancel button
+    reverseButtons: true,
+    focusCancel: true,
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown animate__faster'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp animate__slow'
+    }
+  });
+
+  if (result.isConfirmed) {
+    try {
+      Swal.fire({
+        title: "⏳ Deleting...",
+        text: "Please wait while logs are being cleared.",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      const response = await fetch("{{ url_for('main.clear_logs') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        await Swal.fire({
+          title: "✅ Success",
+          text: data.message || "Logs successfully deleted.",
+          icon: "success",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#3085d6",
+          showClass: {
+            popup: 'animate__animated animate__fadeInDown animate__slower'
+          },
+          hideClass: {
+            popup: 'animate__animated animate__fadeOutUp animate__slower'
+          }
+        });
+        location.reload();
+      } else {
+        Swal.fire("❌ Error", data.message || "Failed to delete logs.", "error");
+      }
+
+    } catch (error) {
+      Swal.fire("❌ Error", "Something went wrong while deleting logs.", "error");
+    }
+  }
+}
+</script>
+{% endblock %}

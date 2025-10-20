@@ -1,0 +1,31 @@
+# Flask Web Framework
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+Flask-WTF==1.1.1
+
+# Database
+SQLAlchemy==2.0.21
+psycopg2-binary==2.9.7
+
+# Data Processing
+pandas==2.0.3
+numpy==1.24.3
+
+# Security
+Werkzeug==2.3.7
+WTForms==3.0.1
+
+# Environment Management
+python-dotenv==1.0.0
+
+# Development Tools
+alembic==1.11.1
+
+# # Production Server (optional)
+# gunicorn==21.2.0
+
+# Additional Utilities
+python-dateutil==2.8.2
+pytz==2023.3

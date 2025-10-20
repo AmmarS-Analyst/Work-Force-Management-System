@@ -1,0 +1,41 @@
+<header class="header">
+    <div class="header-title">Workforce Management System</div>
+    <div class="user-menu">
+        {% if current_user.is_authenticated and current_user.has_role('admin') %}
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-primary" id="notificationToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-bell"></i>
+                <span id="pending-count">{{ pending_requests|length if pending_requests else 0 }}</span>
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end p-3 shadow" style="width: 320px; max-height: 400px; overflow-y: auto;" id="requests-list">
+                {% if pending_requests %}
+                    {% for req in pending_requests %}
+                    <div id="request-{{ req.id }}" class="request-item border p-2 mb-2 rounded bg-light">
+                        <p class="mb-1">
+                            <strong>{{ req.filename }}</strong><br>
+                            Requested by: {{ req.requested_by_username }}<br>
+                            <small class="text-muted">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success approve-btn" data-id="{{ req.id }}">
+                                Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger deny-btn" data-id="{{ req.id }}">
+                                Deny
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-check-circle"></i> No pending requests
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="user-avatar">{{ current_user.username|first|upper }}</div>
+    </div>
+</header>

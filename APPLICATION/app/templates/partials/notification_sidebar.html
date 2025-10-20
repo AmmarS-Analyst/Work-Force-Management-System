@@ -1,0 +1,40 @@
+<div class="notification-sidebar" id="notificationSidebar">
+    <div class="notification-header">
+        <h3 class="notification-title">
+            <i class="fas fa-bell text-primary"></i>
+            Pending Requests
+            <span class="notification-count" id="pending-count-sidebar">{{ pending_requests|length }}</span>
+        </h3>
+        <button class="close-sidebar" id="closeNotificationSidebar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="notification-body">
+        {% for req in pending_requests %}
+            <div class="notification-item" id="request-{{ req.id }}">
+                <h5>{{ req.filename }}</h5>
+                {% if req.date_range %}
+                    <p><strong>Dates:</strong> {{ req.date_range }}</p>
+                {% else %}
+                    <p><strong>Full file deletion</strong></p>
+                {% endif %}
+                <p><strong>Reason:</strong> {{ req.reason }}</p>
+                <p class="notification-meta">
+                    Requested by {{ req.requested_by_username }} on {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+                <div class="notification-actions">
+                    <button class="btn btn-sm btn-success approve-btn" data-id="{{ req.id }}">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger deny-btn" data-id="{{ req.id }}">
+                        <i class="fas fa-times"></i> Deny
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-check-circle"></i> No pending requests
+            </div>
+        {% endfor %}
+    </div>
+</div>

@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Distribution | Workforce Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/distribution.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center animate-fade-in-up mb-4">
+    <h1 class="page-title"><i class="fas fa-users-gear text-primary"></i> Agent Distribution Management</h1>
+    
+    {% if current_user.has_role('tm') %}
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-bell"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ pending_requests|length }}
+                <span class="visually-hidden">pending requests</span>
+            </span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notificationsDropdown" style="min-width: 300px;">
+            {% if pending_requests %}
+                {% for req in pending_requests %}
+                <li class="dropdown-item border-bottom mb-1">
+                    <div class="d-flex flex-column">
+                        <small><strong>{{ req.agent_name }}</strong> - Swap with: <strong>{{ req.swap_with_tl or 'N/A' }}</strong></small>
+                        <small class="text-muted">{{ req.created_by }} at {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <div class="mt-1 d-flex gap-1">
+                            <form method="POST" action="{{ url_for('main.handle_distribution_request', request_id=req.id, action='approve') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('main.handle_distribution_request', request_id=req.id, action='deny') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Deny</button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            {% else %}
+                <li class="dropdown-item text-center text-muted">No pending requests</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="distribution-container">
+
+    <!-- Admin/TM Distribution Form -->
+    {% if current_user.has_role('admin') or current_user.has_role('tm') %}
+    <div class="card mb-4">
+        <div class="card-header"><h3><i class="fas fa-users-gear text-primary"></i> Update Distribution</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.distribution') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label for="agent-update" class="form-label">Agent Name</label>
+                    <input list="agents-list" name="agent" class="form-control" id="agent-update" required placeholder="Type to search...">
+                    <datalist id="agents-list">
+                        {% for agent in agent_names %}
+                        <option value="{{ agent }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="mb-3">
+                    <label for="date-update" class="form-label">Effective Date</label>
+                    <input type="date" id="date-update" name="date" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="group_name" class="form-label">Group Name</label>
+                    <select class="form-select" name="group_name" id="group_name">
+                        <option value="">-- Select Group --</option>
+                        {% for group in group_names %}
+                        <option value="{{ group }}">{{ group }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="tm_name" class="form-label">TM Name</label>
+                    <select class="form-select" name="tm_name" id="tm_name">
+                        <option value="">-- Select TM --</option>
+                        {% for tm in tm_names %}
+                        <option value="{{ tm }}">{{ tm }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="tl_name" class="form-label">TL Name</label>
+                    <select class="form-select" name="tl_name" id="tl_name">
+                        <option value="">-- Select TL --</option>
+                        {% for tl in team_leaders %}
+                            {% if current_user.has_role('admin') or (current_user.has_role('tm') and tl.tm_id == current_user.tm_id) %}
+                            <option value="{{ tl.name }}">{{ tl.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Update Distribution</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TM Assign to TL Form -->
+    <div class="card mb-4">
+        <div class="card-header"><h3><i class="fas fa-user-tag text-primary"></i> Assign Agent to TL</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.assign_tl') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Agent</label>
+                        <input list="agents-list" name="agent" class="form-control" required placeholder="Type to search...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Team Leader</label>
+                        <select name="tl_id" class="form-select" required>
+                            <option value="">-- Select TL --</option>
+                            {% for tl in team_leaders %}
+                                {% if current_user.has_role('admin') or (current_user.has_role('tm') and tl.tm_id == current_user.tm_id) %}
+                                <option value="{{ tl.id }}">{{ tl.name }} ({{ tl.group_name }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Effective Date</label>
+                        <input type="date" name="effective_date" class="form-control">
+                    </div>
+                </div>
+                <div class="d-grid mt-3">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Assign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TL Section -->
+    {% if current_user.has_role('tl') %}
+    <div class="card mb-4">
+        <div class="card-header"><h3><i class="fas fa-paper-plane text-primary"></i> Submit Distribution Change Request</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.tl_request_assignment') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label class="form-label">Agent</label>
+                    <input list="agents-list-tl" name="agent_name" class="form-control" required>
+                    <datalist id="agents-list-tl">
+                        {% for agent in agent_names %}
+                        <option value="{{ agent }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Effective Date</label>
+                    <input type="date" name="effective_date" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Action</label>
+                    <select name="action" id="tlAction" class="form-select" required onchange="toggleTlFields()">
+                        <option value="">-- Select --</option>
+                        <option value="remove">Remove</option>
+                        <option value="swap">Swap</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="swapWithTlDiv" style="display:none;">
+                    <label class="form-label">Swap With TL</label>
+                    <select name="swap_with_tl" id="swapWithTl" class="form-select" onchange="loadSwapAgents()">
+                        <option value="">-- Select TL --</option>
+                        {% for tl in swap_tl_names %}
+                        <option value="{{ tl }}">{{ tl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3" id="swapWithAgentDiv" style="display:none;">
+                    <label class="form-label">Swap With Agent</label>
+                    <select name="swap_with_agent" id="swapWithAgent" class="form-select">
+                        <option value="">-- Select agent --</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason</label>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="Provide context"></textarea>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Agent Search -->
+    <div class="card mb-4">
+        <div class="card-header"><h3><i class="fas fa-search text-primary"></i> Agent Search</h3></div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="agent-search" class="form-label">Search Agent</label>
+                <div class="input-group">
+                    <input type="text" id="agent-search" class="form-control" placeholder="Enter agent name...">
+                    <button class="btn btn-primary" type="button" id="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            <div class="mb-3" id="date-filter" style="display:none;">
+                <label for="search-date" class="form-label">View Record by Date</label>
+                <select id="search-date" class="form-select"></select>
+            </div>
+            <div id="search-results" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Distribution Viewer -->
+<div class="card mb-4">
+    <div class="card-header"><h3><i class="fas fa-eye text-primary"></i> Distribution Viewer</h3></div>
+    <div class="card-body">
+        <div class="viewer-tabs mb-3">
+            <div class="viewer-tab active" data-tab="tm">By TM</div>
+            <div class="viewer-tab" data-tab="group">By Group</div>
+            <div class="viewer-tab" data-tab="tl">By TL</div>
+        </div>
+        
+        <!-- TM Viewer -->
+        <div class="viewer-content active" id="tm-viewer">
+            <label>Select Team Manager</label>
+            <select id="tm-select" class="form-select mb-2">
+                <option value="">-- Select TM --</option>
+                {% for tm in tm_names %}<option value="{{ tm }}">{{ tm }}</option>{% endfor %}
+            </select>
+            <!-- Active/All Filter -->
+            <select id="tm-filter" class="form-select mb-3">
+                <option value="all">All</option>
+                <option value="active">Active</option>
+            </select>
+            <div class="agent-grid" id="tm-agent-grid"><div class="no-agents">Select a TM</div></div>
+        </div>
+        
+        <!-- Group Viewer -->
+        <div class="viewer-content" id="group-viewer">
+            <label>Select Group</label>
+            <select id="group-select" class="form-select mb-2">
+                <option value="">-- Select Group --</option>
+                {% for group in group_names %}<option value="{{ group }}">{{ group }}</option>{% endfor %}
+            </select>
+            <!-- Active/All Filter -->
+            <select id="group-filter" class="form-select mb-3">
+                <option value="all">All</option>
+                <option value="active">Active</option>
+            </select>
+            <div class="agent-grid" id="group-agent-grid"><div class="no-agents">Select a Group</div></div>
+        </div>
+        
+        <!-- TL Viewer -->
+        <div class="viewer-content" id="tl-viewer">
+            <label>Select Team Leader</label>
+            <select id="tl-select" class="form-select mb-2">
+                <option value="">-- Select TL --</option>
+                {% for tl in team_leaders %}<option value="{{ tl.name }}">{{ tl.name }}</option>{% endfor %}
+            </select>
+            <!-- Active/All Filter -->
+            <select id="tl-filter" class="form-select mb-3">
+                <option value="all">All</option>
+                <option value="active">Active</option>
+            </select>
+            <div class="agent-grid" id="tl-agent-grid"><div class="no-agents">Select a TL</div></div>
+        </div>
+    </div>
+</div>
+
+    <!-- Agent Status Update -->
+    {% if current_user.has_role('admin') or current_user.has_role('tm') %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white"><h3><i class="fas fa-user-check"></i> Update Agent Status</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.update_agent_status') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label for="status-agent" class="form-label">Agent Name</label>
+                    <input list="agents-list" name="agent_name" id="status-agent" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="status-select" class="form-label">Status</label>
+                    <select name="status" id="status-select" class="form-select" required>
+                        <option value="">-- Select Status --</option>
+                        <option value="Employee">Employee</option>
+                        <option value="Lay Off">Lay Off</option>
+                        <option value="Long Leave">Long Leave</option>
+                        <option value="Resigned">Resigned</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="effective-date" class="form-label">Effective Date</label>
+                    <input type="text" name="effective_date" id="effective-date" class="form-control" required>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+function toggleTlFields() {
+    const action = document.getElementById('tlAction').value;
+    document.getElementById('swapWithTlDiv').style.display = action === 'swap' ? 'block' : 'none';
+    document.getElementById('swapWithAgentDiv').style.display = action === 'swap' ? 'block' : 'none';
+}
+
+flatpickr("#effective-date", {
+    dateFormat:"Y-m-d",
+    altInput:true,
+    altFormat:"F j, Y",
+    defaultDate:"today"
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/distribution_v2.js') }}"></script>
+{% endblock %}
